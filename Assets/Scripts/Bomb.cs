@@ -19,7 +19,7 @@ public class Bomb : MonoBehaviour
 
     private void Start()
     {
-        cord = Grid.grid.PosToMat(transform.position);
+        cord = GameParameters.Instance.PosToMat(transform.position);
     }
 
     private void FixedUpdate()

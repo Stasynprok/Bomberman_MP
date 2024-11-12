@@ -1,20 +1,22 @@
-using System.Collections;
-using System.Collections.Generic;
+using Mirror;
+using System;
 using UnityEngine;
 
-public class GameEvents : MonoBehaviour
+public class GameEvents : NetworkBehaviour
 {
-    public delegate void DestroyBomb(Vector2Int cord);
-    public static event DestroyBomb OnDestroyBomb;
+    public static event Action OnDestroyEnemy;
+    public static event Action OnDestroyBomberman;
+    public static event Action OnDestroyTile;
+
+    public static event Action OnPowerUpCollected;
+    public static event Action OnGateEnter;
+    public static event Action OnRequest;
+
+    public static event Action<Vector2Int> OnDestroyBomb;
 
     public static void OnDestroyBombInvoke(Vector2Int cord) {
         OnDestroyBomb?.Invoke(cord);
     }
-
-    public delegate void DestroyCharacters();
-    public static event DestroyCharacters OnDestroyEnemy;
-    public static event DestroyCharacters OnDestroyBomberman;
-    public static event DestroyCharacters OnDestroyTile;
 
     public static void OnDestroyEnemyInvoke() {
         OnDestroyEnemy?.Invoke();
@@ -28,10 +30,6 @@ public class GameEvents : MonoBehaviour
         OnDestroyTile?.Invoke();
     }
 
-    public delegate void CollectedCollectible();
-    public static event CollectedCollectible OnPowerUpCollected;
-    public static event CollectedCollectible OnGateEnter;
-
     public static void OnPowerUpCollectedInvoke() {
         OnPowerUpCollected?.Invoke();
     }
@@ -39,9 +37,6 @@ public class GameEvents : MonoBehaviour
     public static void OnGateEnterInvoke() {
         OnGateEnter?.Invoke();
     }
-
-    public delegate void InstantiateBombRequest();
-    public static event InstantiateBombRequest OnRequest;
 
     public static void OnRequestInvoke() {
         OnRequest?.Invoke();

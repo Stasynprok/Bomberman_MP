@@ -1,8 +1,9 @@
+using Mirror;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Enemy : MonoBehaviour
+public class Enemy : NetworkBehaviour
 {
     private int x;
     private int z;
@@ -11,72 +12,76 @@ public class Enemy : MonoBehaviour
     private Vector3 rotationAngles;
     System.Random rnd;
 
-    public GameObject footStep;
+    /*public GameObject footStep;
+    private FootStepPool _poolFoots;*/
 
+    [Server]
     private void Awake()
     {
         x = z = 1;
         isMoving = false;
         move = new int[,] { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
         rnd = new System.Random();
+        //_poolFoots = GetComponent<FootStepPool>();
     }
 
+    [Server]
     private void Start()
     {
-        Vector2Int pos = Grid.grid.GetCoordinate();
+        Vector2Int pos = GameParameters.Instance.GetCoordinate();
         //Debug.Log($"pos is {pos}");
         x = pos.x;
         z = pos.y;
     }
-
+    [Server]
     private void OnEnable()
     {
         GameEvents.OnDestroyBomb += SelfDestroyHandler;
     }
-
+    [Server]
     private void OnDisable()
     {
         GameEvents.OnDestroyBomb -= SelfDestroyHandler;
         GameEvents.OnDestroyEnemyInvoke();
         SoundManagement.sm.PlayHurt();
     }
-
+    [Server]
     private void SelfDestroyHandler(Vector2Int cord) {
-        if (!Grid.grid.SafeFromBomb(cord, new Vector2Int(x, z))) {
+        if (!GameParameters.Instance.SafeFromBomb(cord, new Vector2Int(x, z))) {
             //Debug.Log("Enemy Destroyed");
             Destroy(gameObject);
         }
     }
-
+    [Server]
     private void FixedUpdate()
     {
         int i = rnd.Next(0, 4);
         Vector2Int next = new (move[i, 0], move[i, 1]);
         OnMovementPerformed(next);
     }
-
+    [Server]
     private void OnMovementPerformed(Vector2Int temp) {
         Vector2Int newPos = new(x + temp.x, z + temp.y);
-        if (!isMoving && Grid.grid.CanMove(newPos)) {
-            Vector3 dest = Grid.grid.MatToWorldPos(newPos.x, newPos.y);
-            float y_rotation = 0;
+        if (!isMoving && GameParameters.Instance.CanMove(newPos)) {
+            Vector3 dest = GameParameters.Instance.MatToWorldPos(newPos.x, newPos.y);
+            //float y_rotation = 0;
             if (temp.y == 1) {
-                rotationAngles.y = y_rotation = 90;
+                rotationAngles.y = 90;
             } else if (temp.y == -1) {
-                rotationAngles.y = y_rotation = -90;
+                rotationAngles.y = -90;
             } else if (temp.x == 1) {
-                rotationAngles.y = y_rotation = 180;
+                rotationAngles.y = 180;
             } else {
-                rotationAngles.y = y_rotation = 0;
+                rotationAngles.y = 0;
             }
 
-            InstantiateFootSteps(y_rotation);
+            //InstantiateFootSteps(y_rotation);
             StartCoroutine(Move(dest));
             x = newPos.x;
             z = newPos.y;
         }
     }
-
+    [Server]
     private IEnumerator Move(Vector3 dest)
     {
         isMoving = true;
@@ -98,9 +103,14 @@ public class Enemy : MonoBehaviour
         transform.position = end;
         isMoving = false;
     }
-
-    private void InstantiateFootSteps(float y) {
-        var obj = Instantiate(footStep, new Vector3(transform.position.x, 0.1f, transform.position.z), transform.rotation);
+    
+    /*private void InstantiateFootSteps(float y) {
+        var obj = _poolFoots.GetObjectFromPool();
+        obj.transform.position = new Vector3(transform.position.x, 0.1f, transform.position.z);
         obj.transform.rotation = Quaternion.Euler(90, y, 0);
-    }
+
+        FootStepScript step = obj.GetComponent<FootStepScript>();
+
+        step.Initialize(_poolFoots);
+    }*/
 }

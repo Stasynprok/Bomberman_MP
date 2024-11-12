@@ -3,15 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
+using Mirror;
 
-public class Grid: MonoBehaviour
+
+public class Grid: NetworkBehaviour
 {
-    /// <summary>
-    /// Tile Info
-    /// 1: hard tile, 2: soft tile
-    /// </summary>
-
-    private float originX, originY, originZ;
     public GameObject hardTile;
     public GameObject softTile;
     public GameObject tileContainer;
@@ -19,64 +15,68 @@ public class Grid: MonoBehaviour
     public GameObject enemy;
     public GameObject bomb;
     public GameObject door;
-    public static Grid grid;
-    //public Text score, timer;
-    public TextMeshProUGUI score, timer;
-    public GameObject menu;
+    private GameObject instantiatedGate;
 
     private HashSet<string> bs;
-    private Queue<int> X, Y;
-    private int factor;
-    private int enemyDestroyed, numberOfTotalEnemies;
-    private GameObject instantiatedGate;
-    private float _timer, _score;
-    private bool toggleMenu, gameOver;
-
-    public int[,] mat;
-
-    private int numberOfSoftTile;
-
     System.Random rnd;
-    private void Awake()
+
+    public override void OnStartServer()
     {
-	    rnd = new System.Random();
-        originX = -7.5f;
-        originY = 0.5f;
-        originZ = 7.5f;
-        factor = 1;
-        enemyDestroyed = 0;
-        toggleMenu = false;
-        gameOver = false;
+        GameParameters.Instance.CountCol = 13;
+        GameParameters.Instance.CountRow = 13;
+        GameParameters.Instance.CreateArray();
 
-        timer.text = "Timer: 0";
-        score.text = "Score: 0";
-        _timer = _score = 0;
-
-        mat = new int[13, 13];
-        X = new Queue<int>();
-        Y = new Queue<int>();
-
-        for (int j = 0; j < 13; j++) {
-            mat[0, j] = mat[12, j] = 1;
-            mat[j, 0] = mat[j, 12] = 1;
+        for (int j = 0; j < 13; j++)
+        {
+            GameParameters.Instance.SetElementToArray(0, j, 1);
+            GameParameters.Instance.SetElementToArray(12, j, 1);
+            GameParameters.Instance.SetElementToArray(j, 0, 1);
+            GameParameters.Instance.SetElementToArray(j, 12, 1);
         }
 
-        for (int i = 2; i < 12; i+=2) {
-            for (int j = 2; j < 12; j+=2) {
-                mat[i, j] = 1;
+        for (int i = 2; i < 12; i += 2)
+        {
+            for (int j = 2; j < 12; j += 2)
+            {
+                GameParameters.Instance.SetElementToArray(i, j, 1);
             }
         }
 
-        for (int i = 0; i < 13; i++) {
-            for (int j = 0; j < 13; j++) {
-                if (mat[i, j] == 1) {
-                    InstantiateTile(i, j, hardTile);
+        OnAwake();
+        
+    }
+
+
+    [Server]
+    private void OnAwake()
+    {
+        rnd = new System.Random();
+        GameParameters.Instance.OriginX = -7.5f;
+        GameParameters.Instance.OriginY = 0.5f;
+        GameParameters.Instance.OriginZ = 7.5f;
+
+        GameParameters.Instance.Factor = 1;
+
+        GameParameters.Instance.EnemyDestroyed = 0;
+
+        GameParameters.Instance.ToggleMenu = false;
+        GameParameters.Instance.GameOver = false;
+        
+
+        for (int i = 0; i < 13; i++)
+        {
+            for (int j = 0; j < 13; j++)
+            {
+                if (GameParameters.Instance.GetElementFromArray(i, j) == 1)
+                {
+                    GameObject pref = GetObjectFromNetworkManager(hardTile);
+                    GameObject obj = InstantiateTile(i, j, pref, 0.95f);
+                    NetworkServer.Spawn(obj);
                 }
             }
         }
 
-        // Instantiating soft tiles here
-        numberOfSoftTile = rnd.Next(25, 36);
+         int numberOfSoftTile = rnd.Next(25, 36);
         while (numberOfSoftTile > 0)
         {
             if (InstantiateSoftTile())
@@ -85,13 +85,8 @@ public class Grid: MonoBehaviour
             }
         }
 
-        // Instantiating bomberman here
-        InstantiateTile(1, 1, bomberman, 0);
-
-        // Instantiating enemies here
         int numberOfEnemy = rnd.Next(5, 10);
-        //int numberOfEnemy = rnd.Next(1, 2);
-        numberOfTotalEnemies = numberOfEnemy;
+        GameParameters.Instance.NumberOfTotalEnemies = numberOfEnemy;
         while (numberOfEnemy > 0)
         {
             if (InstantiateEnemy())
@@ -100,42 +95,30 @@ public class Grid: MonoBehaviour
             }
         }
 
-        // Instantiating collectible here
         int numberOfCollectible = rnd.Next(2, 6);
         bs = new HashSet<string>();
-        while (numberOfCollectible > 0) {
-            if (InstantiateCollectible()) 
-	        {
+        while (numberOfCollectible > 0)
+        {
+            if (InstantiateCollectible())
+            {
                 numberOfCollectible--;
             }
         }
 
-        // Instantiating door here
         bool doorInstantiated = false;
-        while (!doorInstantiated) {
-            if (InstantiateDoor()) {
+        while (!doorInstantiated)
+        {
+            if (InstantiateDoor())
+            {
                 doorInstantiated = true;
             }
         }
-
-        grid = this;
-    }
-
-    private void FixedUpdate()
-    {
-        _timer += Time.deltaTime;
-        timer.text = "Timer: " + Mathf.RoundToInt(_timer);
-        score.text = "Score: " + Mathf.RoundToInt(_score);
-    }
-
-    private void Update()
-    {
-        menu.SetActive(toggleMenu || gameOver);
     }
 
     private GameObject InstantiateTile (int x, int z, GameObject tile, float _y = 0.5f) {
-        Vector3 pos = MatToWorldPos(x, z);
+        Vector3 pos = GameParameters.Instance.MatToWorldPos(x, z);
         pos.y = _y;
+
         var _tile = Instantiate(tile, pos, tile.transform.rotation);
         _tile.transform.parent = tileContainer.transform;
         return _tile;
@@ -145,22 +128,26 @@ public class Grid: MonoBehaviour
         int x = rnd.Next(1, 13);
         int z = rnd.Next(1, 13);
 
-        if (mat[x, z] != 2 || bs.Contains(x + "," + z)) {
+        if (GameParameters.Instance.GetElementFromArray(x, z) != 2 || bs.Contains(x + "," + z)) {
             return false;
         }
 
-        instantiatedGate = InstantiateTile(x, z, door, 0);
+        GameObject pref = GetObjectFromNetworkManager(door);
+        GameObject obj = InstantiateTile(x, z, pref, 0.95f);
+        NetworkServer.Spawn(obj);
         return true;
     }
 
     private bool InstantiateCollectible () {
         int x = rnd.Next(1, 13);
         int z = rnd.Next(1, 13);
-        if (mat[x, z] != 2) {
+        if (GameParameters.Instance.GetElementFromArray(x, z) != 2) {
             return false;
         }
 
-        InstantiateTile(x, z, bomb);
+        GameObject pref = GetObjectFromNetworkManager(bomb);
+        GameObject obj = InstantiateTile(x, z, pref, 0.95f);
+        NetworkServer.Spawn(obj);
         bs.Add(x + "," + z);
         return true;
     }
@@ -168,116 +155,38 @@ public class Grid: MonoBehaviour
     private bool InstantiateEnemy () {
         int x = rnd.Next(1, 13);
         int z = rnd.Next(1, 13);
-        if (mat[x, z] == 1 || mat[x, z] == 2 || (x >= 1 && x <= 5 && z >= 1 && z <= 5)) {
+        if (GameParameters.Instance.GetElementFromArray(x, z) == 1 || GameParameters.Instance.GetElementFromArray(x, z) == 2 || (x >= 1 && x <= 5 && z >= 1 && z <= 5)) {
             return false;
         }
 
-        X.Enqueue(x); Y.Enqueue(z);
-        InstantiateTile(x, z, enemy, 0.95f);
+        GameParameters.Instance.EnemyX.Add(x);
+        GameParameters.Instance.EnemyY.Add(z);
+
+        GameObject pref = GetObjectFromNetworkManager(enemy);
+        GameObject obj = InstantiateTile(x, z, pref, 0.95f);
+        NetworkServer.Spawn(obj);
         return true;
     }
 
     private bool InstantiateSoftTile () {
         int x = rnd.Next(1, 13);
         int z = rnd.Next(1, 13);
-        if (mat[x, z] == 1 || mat[x, z] == 2 || (x >= 1 && x <= 2 && z >= 1 && z <= 2)) {
+        if (GameParameters.Instance.GetElementFromArray(x, z) == 1 || GameParameters.Instance.GetElementFromArray(x, z) == 2 || (x >= 1 && x <= 2 && z >= 1 && z <= 2)) {
             return false;
         }
 
-        InstantiateTile(x, z, softTile);
-        mat[x, z] = 2;
+        GameObject pref = GetObjectFromNetworkManager(softTile);
+        GameObject obj = InstantiateTile(x, z, pref, 0.95f);
+        NetworkServer.Spawn(obj);
+
+        GameParameters.Instance.SetElementToArray(x, z, 2);
         return true;
-    }
-
-    public Vector3 MatToWorldPos(int x, int z) {
-        float _x = z;
-        float _z = -x;
-
-        return new Vector3(_x + originX, originY, _z + originZ);
-    }
-
-    public Vector2Int PosToMat(Vector3 pos) {
-        Vector2Int p = new (0, 0);
-
-        float x = pos.x - originX;
-        float z = pos.z - originZ;
-        p.x = -(int)z;
-        p.y = (int)x;
-        return p;
-    }
-
-    public bool CanMove(Vector2Int pos) {
-        return pos.x >= 0 && pos.x < 13 && pos.y >= 0 && pos.y < 13 && mat[pos.x, pos.y] != 1 && mat[pos.x, pos.y] != 2;
-    }
-
-    public Vector2Int GetCoordinate() {
-        Vector2Int cord = Vector2Int.zero;
-        if (X.Count > 0 && Y.Count > 0) {
-            cord.x = X.Dequeue();
-            cord.y = Y.Dequeue();
-        }
-
-        //Debug.Log($"cord is {cord}");
-
-        return cord;
-    }
-
-    public bool SafeFromBomb(Vector2Int bomb, Vector2Int obj) {
-        Vector2Int up = new(-1, 0);
-        Vector2Int down = new(1, 0);
-        Vector2Int left = new(0, -1);
-        Vector2Int right = new(0, 1);
-
-        Vector2Int pos = bomb;
-        for (int i = 0; i < factor; i++) {
-            pos += up;
-            if (pos == obj)
-            {
-                return false;
-            } else if (pos.x < 1 || mat[pos.x, pos.y] == 1) {
-                break;
-            }
-        }
-
-        pos = bomb;
-        for (int i = 0; i < factor; i++) {
-            pos += down;
-            if (pos == obj) {
-                return false;
-            } else if (pos.x > 11 || mat[pos.x, pos.y] == 1) {
-                break;
-            }
-        }
-
-        pos = bomb;
-        for (int i = 0; i < factor; i++) {
-            pos += left;
-            if (pos == obj) {
-                return false;
-            } else if (pos.y < 1 || mat[pos.x, pos.y] == 1) {
-                break;
-            }
-        }
-
-        pos = bomb;
-        for (int i = 0; i < factor; i++) {
-            pos += right;
-            if (pos == obj) {
-                return false;
-            } else if (pos.y > 11 || mat[pos.x, pos.y] == 1) {
-                break;
-            }
-        }
-
-        return obj != bomb;
     }
 
     private void OnEnable()
     {
         GameEvents.OnGateEnter += GateHandler;
         GameEvents.OnDestroyEnemy += EnemyHandler;
-        GameEvents.OnDestroyTile += TileHandler;
-        GameEvents.OnPowerUpCollected += CollectionHandler;
         GameEvents.OnDestroyBomberman += GateHandler;
     }
 
@@ -285,49 +194,38 @@ public class Grid: MonoBehaviour
     {
         GameEvents.OnGateEnter -= GateHandler;
         GameEvents.OnDestroyEnemy -= EnemyHandler;
-        GameEvents.OnDestroyTile -= TileHandler;
-        GameEvents.OnPowerUpCollected -= CollectionHandler;
         GameEvents.OnDestroyBomberman -= GateHandler;
     }
 
     private void GateHandler() {
-        gameOver = true;
+        GameParameters.Instance.GameOver = true;
     }
 
     private void EnemyHandler() {
-        enemyDestroyed++;
-        _score += 200;
-        if (enemyDestroyed == numberOfTotalEnemies)
+        GameParameters.Instance.EnemyDestroyed++;
+        if (GameParameters.Instance.EnemyDestroyed == GameParameters.Instance.NumberOfTotalEnemies)
         {
             instantiatedGate.GetComponent<BoxCollider>().enabled = true;
         }
     }
 
-    private void TileHandler() {
-        _score += 50;
-    }
-
-    private void CollectionHandler() {
-        _score += 100;
-    }
-
-    public void ToggleMenuHandler() {
-        toggleMenu = !toggleMenu;
-    }
-
-    public void RestartGameHandler() {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    }
-
-    public void MainMenuHandler() {
-        SceneManager.LoadScene(sceneBuildIndex: 0);
-    }
-
     public void InstantiateBombRequestSend() {
-        if (gameOver) {
+        if (GameParameters.Instance.GameOver) {
             return;
         }
 
         GameEvents.OnRequestInvoke();
+    }
+
+    private GameObject GetObjectFromNetworkManager(GameObject gameObject)
+    {
+        for (int i = 0; i < NetworkManager.singleton.spawnPrefabs.Count; i++)
+        {
+            if (NetworkManager.singleton.spawnPrefabs[i] == gameObject)
+            {
+                return NetworkManager.singleton.spawnPrefabs[i];
+            }
+        }
+        return null;
     }
 }

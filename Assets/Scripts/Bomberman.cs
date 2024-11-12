@@ -1,10 +1,14 @@
+using Mirror;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Windows;
 
-public class Bomberman : MonoBehaviour
+public class Bomberman : NetworkBehaviour
 {
+    [SerializeField] private TMP_Text _nicknameText;
     private CustomMovement input;
     private int x;
     private int z;
@@ -12,13 +16,16 @@ public class Bomberman : MonoBehaviour
     private Vector3 rotationAngles;
     public Animator anim;
     public GameObject bomb;
-    public FloatingJoystick joystick;
 
     private int maxBombs;
     private int spawnedBombs;
     private Vector3 position, rotation, scale;
     public float dur;
-    public GameObject footStep;
+    //public GameObject footStep;
+
+    //private FootStepPool _poolFoots;
+    [SyncVar(hook = nameof(SetNick))]
+    private string Nick;
 
     private void Awake()
     {
@@ -30,11 +37,22 @@ public class Bomberman : MonoBehaviour
         position = new Vector3(transform.position.x, transform.position.y, transform.position.z);
         rotation = new Vector3(transform.rotation.x, transform.rotation.y, transform.rotation.z);
         scale = new Vector3(transform.localScale.x, transform.localScale.y, transform.localScale.z);
+        //_poolFoots = GetComponent<FootStepPool>();
     }
 
     private void Start()
     {
-        joystick = FindFirstObjectByType<FloatingJoystick>();
+        if (!isLocalPlayer)
+        {
+            return;
+        }
+        SetBomberman();
+    }
+    public void SetBomberman()
+    {
+        GameParameters grid = GameParameters.Instance;
+
+        grid.InitBomberman(gameObject);
     }
 
     private void OnEnable()
@@ -48,6 +66,10 @@ public class Bomberman : MonoBehaviour
 
     private void OnDisable()
     {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
         input.Bomberman.Movement.performed -= OnMovementPerformed;
         input.Disable();
         GameEvents.OnDestroyBomb -= SelfDestroyHandler;
@@ -57,7 +79,11 @@ public class Bomberman : MonoBehaviour
     }
 
     private void SelfDestroyHandler(Vector2Int cord) {
-        if (!Grid.grid.SafeFromBomb(cord, new Vector2Int(x, z))) {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
+        if (!GameParameters.Instance.SafeFromBomb(cord, new Vector2Int(x, z))) {
             //Debug.Log("Bomberman Destroyed");
             Destroy(gameObject);
         } else {
@@ -67,15 +93,27 @@ public class Bomberman : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
         anim.SetBool("Walk", isMoving);
         anim.SetBool("Idle", !isMoving);
     }
 
     private void InstantiateBomb(InputAction.CallbackContext _v) {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
         InstantiateBombHandler();
     }
 
     public void InstantiateBombHandler() {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
         if (spawnedBombs == maxBombs)
         {
             return;
@@ -87,29 +125,37 @@ public class Bomberman : MonoBehaviour
     }
 
     private void OnMovementPerformed(InputAction.CallbackContext _v) {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
+        Debug.Log($"[OnMovementPerformed] isLocalPlayer: {isLocalPlayer}");
         Vector2 val = _v.ReadValue<Vector2>();
         OnMovementPerformedUtil(val);
     }
 
     private void OnMovementPerformedUtil(Vector2 val) {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
         Vector2Int temp = new(Mathf.RoundToInt(val.x), Mathf.RoundToInt(val.y));
-        //Debug.Log(temp);
 
         Vector2Int newPos = new(x - temp.y, z + temp.x);
-        if (!isMoving && Grid.grid.CanMove(newPos)) {
-            Vector3 dest = Grid.grid.MatToWorldPos(newPos.x, newPos.y);
-            float y_rotation = 0;
+        if (!isMoving && GameParameters.Instance.CanMove(newPos)) {
+            Vector3 dest = GameParameters.Instance.MatToWorldPos(newPos.x, newPos.y);
+            //float y_rotation = 0;
             if (temp.x == -1) {
-                rotationAngles.y = y_rotation = -90;
+                rotationAngles.y = -90;
             } else if (temp.x == 1) {
-                rotationAngles.y = y_rotation = 90;
+                rotationAngles.y = 90;
             } else if (temp.y == 1) {
-                rotationAngles.y = y_rotation = 0;
+                rotationAngles.y = 0;
             } else {
-                rotationAngles.y = y_rotation = 180;
+                rotationAngles.y = 180;
             }
 
-            InstantiateFootSteps(y_rotation);
+            //InstantiateFootSteps(y_rotation);
 
             StartCoroutine(Move(dest));
             x = newPos.x;
@@ -119,6 +165,10 @@ public class Bomberman : MonoBehaviour
 
     private IEnumerator Move(Vector3 dest)
     {
+        if (!isLocalPlayer)
+        {
+            yield break;
+        }
         isMoving = true;
         SoundManagement.sm.PlayFootStep();
         //Vector3 end = transform.position + dir, start = transform.position;
@@ -142,6 +192,10 @@ public class Bomberman : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
         if (collision.collider.CompareTag("enemy")) {
             Destroy(gameObject);
         } else if (collision.collider.CompareTag("powerUp")) {
@@ -159,8 +213,28 @@ public class Bomberman : MonoBehaviour
         }
     }
 
-    private void InstantiateFootSteps(float y) {
-        var obj = Instantiate(footStep, new Vector3(transform.position.x, 0.1f, transform.position.z), transform.rotation);
+/*    private void InstantiateFootSteps(float y) {
+        if (!isLocalPlayer)
+        {
+            return;
+        }
+
+        var obj = _poolFoots.GetObjectFromPool();
+        obj.transform.position = new Vector3(transform.position.x, 0.1f, transform.position.z);
         obj.transform.rotation = Quaternion.Euler(90, y, 0);
+
+        FootStepScript step = obj.GetComponent<FootStepScript>();
+
+        step.Initialize(_poolFoots);
+    }*/
+
+    public void SetNickname(string nickname)
+    {
+        Nick = nickname;
+    }
+
+    public void SetNick(string oldNick, string nickname)
+    {
+        _nicknameText.text = nickname;
     }
 }
