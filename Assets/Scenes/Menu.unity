@@ -1543,7 +1543,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7231500877146435050, guid: 73ed30a18aa88eb468b1e62effa194a5, type: 3}
       propertyPath: autoCreatePlayer
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
