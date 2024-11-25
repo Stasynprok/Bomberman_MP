@@ -45,7 +45,7 @@ public class CustomNetworkManager : NetworkManager
         player.SetNickname(message.Nickname);
 
         NetworkServer.AddPlayerForConnection(conn, gameobject);
-        HubManager.Instance.AddPlayerOnRandomScene(conn);
+        HubManager.Instance.AddPlayerOnLastScene(conn);
     }
 
     public override void OnServerConnect(NetworkConnectionToClient conn)
