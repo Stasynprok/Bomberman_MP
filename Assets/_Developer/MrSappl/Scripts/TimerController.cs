@@ -7,6 +7,7 @@ using UnityEngine;
 public class TimerController : NetworkBehaviour
 {
     [SerializeField] private TMP_Text _timerText;
+    private GameParameters _gameParameters;
 
     private void Start()
     {
@@ -20,6 +21,6 @@ public class TimerController : NetworkBehaviour
 
     private void UpdateTimer()
     {
-        _timerText.text = $"Timer: {GameParameters.Instance.Timer.ToString("0")}";
+        _timerText.text = $"Timer: {_gameParameters.Timer.ToString("0")}";
     }
 }

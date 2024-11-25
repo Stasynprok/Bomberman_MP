@@ -8,6 +8,7 @@ using UnityEngine.SocialPlatforms.Impl;
 public class ScoreController : NetworkBehaviour
 {
     [SerializeField] private TMP_Text _score;
+    private GameParameters _gameParameters;
 
     private void OnEnable()
     {
@@ -26,28 +27,28 @@ public class ScoreController : NetworkBehaviour
     private void Start()
     {
         _score.text = "Score: 0";
-        GameParameters.Instance.Score = 0;
+        _gameParameters.Score = 0;
     }
 
     private void UpdateTextScore()
     {
-        int score = GameParameters.Instance.Score;
+        int score = _gameParameters.Score;
         _score.text = $"Score: {score}";
     }
     private void TileHandler()
     {
-        GameParameters.Instance.Score += 50;
+        _gameParameters.Score += 50;
         UpdateTextScore();
     }
 
     private void CollectionHandler()
     {
-        GameParameters.Instance.Score += 100;
+        _gameParameters.Score += 100;
         UpdateTextScore();
     }
     private void EnemyHandler()
     {
-        GameParameters.Instance.Score += 200;
+        _gameParameters.Score += 200;
         UpdateTextScore();
     }
 }

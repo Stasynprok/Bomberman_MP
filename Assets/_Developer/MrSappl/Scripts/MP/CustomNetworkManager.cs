@@ -3,9 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using Mirror;
 using Mirror.Examples.CharacterSelection;
+using UnityEngine.SceneManagement;
 
 public class CustomNetworkManager : NetworkManager
 {
+    [SerializeField] private int _instances = 3;
+    [Scene, SerializeField] private string _gameScene;
+
+
     private static CustomNetworkManager _instance;
     public static CustomNetworkManager Instance
     {
@@ -23,7 +28,13 @@ public class CustomNetworkManager : NetworkManager
     {
         base.OnStartServer();
         NetworkServer.RegisterHandler<PlayerData>(OnCreateCharacter);
+        StartCoroutine(ServerLoadSubScenes());
         
+    }
+
+    public override void OnStopClient()
+    {
+        StartCoroutine(ClientUnloadSubScenes());
     }
 
     private void OnCreateCharacter(NetworkConnectionToClient conn, PlayerData message)
@@ -32,14 +43,32 @@ public class CustomNetworkManager : NetworkManager
 
         Bomberman player = gameobject.GetComponent<Bomberman>();
         player.SetNickname(message.Nickname);
-        //player.SetBomberman(Grid.instance);
+
         NetworkServer.AddPlayerForConnection(conn, gameobject);
+        HubManager.Instance.AddPlayerOnRandomScene(conn);
     }
 
-    public override void OnClientConnect()
+    public override void OnServerConnect(NetworkConnectionToClient conn)
     {
-        NetworkClient.Ready();
+        conn.Send(new SceneMessage { sceneName = _gameScene, sceneOperation = SceneOperation.LoadAdditive });
     }
 
+    [ServerCallback]
+    private IEnumerator ServerLoadSubScenes()
+    {
+        for (int index = 1; index < _instances; index++)
+        {
+            yield return SceneManager.LoadSceneAsync(_gameScene, new LoadSceneParameters { loadSceneMode = LoadSceneMode.Additive, localPhysicsMode = LocalPhysicsMode.Physics3D});
+
+            HubManager.Instance.AddVoidScene();
+        }
+    }
+
+
+    private IEnumerator ClientUnloadSubScenes()
+    {
+        yield return SceneManager.UnloadSceneAsync(SceneManager.GetSceneAt(SceneManager.sceneCount - 1));
+    }
+    
 
 }

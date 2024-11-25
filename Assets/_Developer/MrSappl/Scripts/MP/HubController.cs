@@ -7,7 +7,12 @@ using UnityEngine;
 public class HubController : MonoBehaviour
 {
     [SerializeField] private InputNicknameController _inputNickNameController;
-    
+    public void Initialize()
+    {
+        gameObject.SetActive(true);
+        NetworkClient.RegisterHandler<ServerMessageToPlayer>(OnServerMessageToPlayer);
+    }
+
     public void SendNickname()
     {
         if (string.IsNullOrWhiteSpace(_inputNickNameController.InputNickname.text))
@@ -20,11 +25,6 @@ public class HubController : MonoBehaviour
             StateHub = StateHub.Nickname,
             Nickname = _inputNickNameController.InputNickname.text
         });
-    }
-
-    private void Start()
-    {
-        NetworkClient.RegisterHandler<ServerMessageToPlayer>(OnServerMessageToPlayer);
     }
 
     private void OnServerMessageToPlayer(ServerMessageToPlayer msg)

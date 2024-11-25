@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 7183712527867340210}
   - component: {fileID: 7231500877146435050}
   - component: {fileID: 2414371414185431157}
-  - component: {fileID: 6708165701349934365}
+  - component: {fileID: 846296369227405374}
+  - component: {fileID: 1348965791152130095}
   m_Layer: 0
   m_Name: CustomNetworkManager
   m_TagString: Untagged
@@ -51,8 +52,8 @@ MonoBehaviour:
   headlessStartMode: 0
   editorAutoStart: 0
   sendRate: 60
-  offlineScene: Assets/Scenes/Menu.unity
-  onlineScene: Assets/Scenes/Gameplay.unity
+  offlineScene: 
+  onlineScene: 
   offlineSceneLoadDelay: 0
   transport: {fileID: 2414371414185431157}
   networkAddress: localhost
@@ -61,8 +62,8 @@ MonoBehaviour:
   disconnectInactiveTimeout: 60
   authenticator: {fileID: 0}
   playerPrefab: {fileID: 7692418122082242702, guid: 1dd31d8ce82a34ad28204acc8adef797, type: 3}
-  autoCreatePlayer: 1
-  playerSpawnMethod: 1
+  autoCreatePlayer: 0
+  playerSpawnMethod: 0
   spawnPrefabs:
   - {fileID: 997315640821286130, guid: 88d057ff6efcb47ac8a6f310da4685dc, type: 3}
   - {fileID: 7357856493572328565, guid: 9102b7548731343099561743ad77b941, type: 3}
@@ -70,8 +71,10 @@ MonoBehaviour:
   - {fileID: 4474447276705500822, guid: 4c9bf8b6171e2482f8e9dd5d46b119a1, type: 3}
   - {fileID: 7075007558827842170, guid: bc394bf2683144eebbcf883a8a4a0882, type: 3}
   - {fileID: 7270964946677780271, guid: f42362d9134dd497f8a93f1aa2a80b55, type: 3}
-  - {fileID: 5631417159672869060, guid: 6f2f7536390074cb48aa22998699e427, type: 3}
   - {fileID: 324982200594792933, guid: 871db30d9d9df4bff95658094b788e06, type: 3}
+  - {fileID: 1151154527302321781, guid: ab9ab1b301c731d4ba58779cda7c0a10, type: 3}
+  - {fileID: 1283015982419872321, guid: 96622e55b3ac33b44923c14a9936bfbe, type: 3}
+  - {fileID: 5631417159672869060, guid: 6f2f7536390074cb48aa22998699e427, type: 3}
   - {fileID: 366269207455681292, guid: c12c80f280d9d43b6acc7dc0d3d29bfd, type: 3}
   exceptionsDisconnect: 1
   snapshotSettings:
@@ -88,6 +91,8 @@ MonoBehaviour:
   evaluationMethod: 0
   evaluationInterval: 3
   timeInterpolationGui: 0
+  _instances: 3
+  _gameScene: Assets/Scenes/Gameplay.unity
 --- !u!114 &2414371414185431157
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -117,7 +122,19 @@ MonoBehaviour:
   debugLog: 0
   statisticsGUI: 0
   statisticsLog: 0
---- !u!114 &6708165701349934365
+--- !u!114 &846296369227405374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4237264415050151749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b979f26c95d34324ba005bfacfa9c4fc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1348965791152130095
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

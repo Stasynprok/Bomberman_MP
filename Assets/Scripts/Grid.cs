@@ -16,29 +16,35 @@ public class Grid: NetworkBehaviour
     public GameObject bomb;
     public GameObject door;
     private GameObject instantiatedGate;
+    private GameParameters _gameParameters;
 
     private HashSet<string> bs;
     System.Random rnd;
 
     public override void OnStartServer()
     {
-        GameParameters.Instance.CountCol = 13;
-        GameParameters.Instance.CountRow = 13;
-        GameParameters.Instance.CreateArray();
+        SetGameParameters();
+        if (!_gameParameters)
+        {
+            return;
+        }
+        _gameParameters.CountCol = 13;
+        _gameParameters.CountRow = 13;
+        _gameParameters.CreateArray();
 
         for (int j = 0; j < 13; j++)
         {
-            GameParameters.Instance.SetElementToArray(0, j, 1);
-            GameParameters.Instance.SetElementToArray(12, j, 1);
-            GameParameters.Instance.SetElementToArray(j, 0, 1);
-            GameParameters.Instance.SetElementToArray(j, 12, 1);
+            _gameParameters.SetElementToArray(0, j, 1);
+            _gameParameters.SetElementToArray(12, j, 1);
+            _gameParameters.SetElementToArray(j, 0, 1);
+            _gameParameters.SetElementToArray(j, 12, 1);
         }
 
         for (int i = 2; i < 12; i += 2)
         {
             for (int j = 2; j < 12; j += 2)
             {
-                GameParameters.Instance.SetElementToArray(i, j, 1);
+                _gameParameters.SetElementToArray(i, j, 1);
             }
         }
 
@@ -51,24 +57,28 @@ public class Grid: NetworkBehaviour
     private void OnAwake()
     {
         rnd = new System.Random();
-        GameParameters.Instance.OriginX = -7.5f;
-        GameParameters.Instance.OriginY = 0.5f;
-        GameParameters.Instance.OriginZ = 7.5f;
+        _gameParameters.OriginX = -7.5f;
+        _gameParameters.OriginY = 0.5f;
+        _gameParameters.OriginZ = 7.5f;
 
-        GameParameters.Instance.Factor = 1;
+        _gameParameters.Factor = 1;
 
-        GameParameters.Instance.EnemyDestroyed = 0;
+        _gameParameters.EnemyDestroyed = 0;
 
-        GameParameters.Instance.ToggleMenu = false;
-        GameParameters.Instance.GameOver = false;
+        _gameParameters.ToggleMenu = false;
+        _gameParameters.GameOver = false;
         
 
         for (int i = 0; i < 13; i++)
         {
             for (int j = 0; j < 13; j++)
             {
-                if (GameParameters.Instance.GetElementFromArray(i, j) == 1)
+                if (_gameParameters.GetElementFromArray(i, j) == 1)
                 {
+                    /*//GameObject pref = GetObjectFromNetworkManager(hardTile);
+                    GameObject obj = InstantiateTile(i, j, hardTile, 0.95f);
+                    //NetworkServer.Spawn(obj);*/
+
                     GameObject pref = GetObjectFromNetworkManager(hardTile);
                     GameObject obj = InstantiateTile(i, j, pref, 0.95f);
                     NetworkServer.Spawn(obj);
@@ -86,7 +96,7 @@ public class Grid: NetworkBehaviour
         }
 
         int numberOfEnemy = rnd.Next(5, 10);
-        GameParameters.Instance.NumberOfTotalEnemies = numberOfEnemy;
+        _gameParameters.NumberOfTotalEnemies = numberOfEnemy;
         while (numberOfEnemy > 0)
         {
             if (InstantiateEnemy())
@@ -116,7 +126,7 @@ public class Grid: NetworkBehaviour
     }
 
     private GameObject InstantiateTile (int x, int z, GameObject tile, float _y = 0.5f) {
-        Vector3 pos = GameParameters.Instance.MatToWorldPos(x, z);
+        Vector3 pos = _gameParameters.MatToWorldPos(x, z);
         pos.y = _y;
 
         var _tile = Instantiate(tile, pos, tile.transform.rotation);
@@ -128,7 +138,7 @@ public class Grid: NetworkBehaviour
         int x = rnd.Next(1, 13);
         int z = rnd.Next(1, 13);
 
-        if (GameParameters.Instance.GetElementFromArray(x, z) != 2 || bs.Contains(x + "," + z)) {
+        if (_gameParameters.GetElementFromArray(x, z) != 2 || bs.Contains(x + "," + z)) {
             return false;
         }
 
@@ -141,7 +151,7 @@ public class Grid: NetworkBehaviour
     private bool InstantiateCollectible () {
         int x = rnd.Next(1, 13);
         int z = rnd.Next(1, 13);
-        if (GameParameters.Instance.GetElementFromArray(x, z) != 2) {
+        if (_gameParameters.GetElementFromArray(x, z) != 2) {
             return false;
         }
 
@@ -155,12 +165,12 @@ public class Grid: NetworkBehaviour
     private bool InstantiateEnemy () {
         int x = rnd.Next(1, 13);
         int z = rnd.Next(1, 13);
-        if (GameParameters.Instance.GetElementFromArray(x, z) == 1 || GameParameters.Instance.GetElementFromArray(x, z) == 2 || (x >= 1 && x <= 5 && z >= 1 && z <= 5)) {
+        if (_gameParameters.GetElementFromArray(x, z) == 1 || _gameParameters.GetElementFromArray(x, z) == 2 || (x >= 1 && x <= 5 && z >= 1 && z <= 5)) {
             return false;
         }
 
-        GameParameters.Instance.EnemyX.Add(x);
-        GameParameters.Instance.EnemyY.Add(z);
+        _gameParameters.EnemyX.Add(x);
+        _gameParameters.EnemyY.Add(z);
 
         GameObject pref = GetObjectFromNetworkManager(enemy);
         GameObject obj = InstantiateTile(x, z, pref, 0.95f);
@@ -171,15 +181,19 @@ public class Grid: NetworkBehaviour
     private bool InstantiateSoftTile () {
         int x = rnd.Next(1, 13);
         int z = rnd.Next(1, 13);
-        if (GameParameters.Instance.GetElementFromArray(x, z) == 1 || GameParameters.Instance.GetElementFromArray(x, z) == 2 || (x >= 1 && x <= 2 && z >= 1 && z <= 2)) {
+        if (_gameParameters.GetElementFromArray(x, z) == 1 || _gameParameters.GetElementFromArray(x, z) == 2 || (x >= 1 && x <= 2 && z >= 1 && z <= 2)) {
             return false;
         }
 
+        /* //GameObject pref = GetObjectFromNetworkManager(softTile);
+         GameObject obj = InstantiateTile(x, z, softTile, 0.95f);
+         //NetworkServer.Spawn(obj);
+ */
         GameObject pref = GetObjectFromNetworkManager(softTile);
         GameObject obj = InstantiateTile(x, z, pref, 0.95f);
         NetworkServer.Spawn(obj);
 
-        GameParameters.Instance.SetElementToArray(x, z, 2);
+        _gameParameters.SetElementToArray(x, z, 2);
         return true;
     }
 
@@ -198,25 +212,25 @@ public class Grid: NetworkBehaviour
     }
 
     private void GateHandler() {
-        GameParameters.Instance.GameOver = true;
+        _gameParameters.GameOver = true;
     }
 
     private void EnemyHandler() {
-        GameParameters.Instance.EnemyDestroyed++;
-        if (GameParameters.Instance.EnemyDestroyed == GameParameters.Instance.NumberOfTotalEnemies)
+        _gameParameters.EnemyDestroyed++;
+        if (_gameParameters.EnemyDestroyed == _gameParameters.NumberOfTotalEnemies)
         {
             instantiatedGate.GetComponent<BoxCollider>().enabled = true;
         }
     }
 
     public void InstantiateBombRequestSend() {
-        if (GameParameters.Instance.GameOver) {
+        if (_gameParameters.GameOver) {
             return;
         }
 
         GameEvents.OnRequestInvoke();
     }
-
+    
     private GameObject GetObjectFromNetworkManager(GameObject gameObject)
     {
         for (int i = 0; i < NetworkManager.singleton.spawnPrefabs.Count; i++)
@@ -226,6 +240,31 @@ public class Grid: NetworkBehaviour
                 return NetworkManager.singleton.spawnPrefabs[i];
             }
         }
+        return null;
+    }
+
+    private void SetGameParameters()
+    {
+        Scene scene = gameObject.scene;
+        _gameParameters = GetGameParametersFromScene(scene);
+    }
+
+    private GameParameters GetGameParametersFromScene(Scene scene)
+    {
+        GameParameters parameters;
+        GameObject[] gameObjects;
+
+        gameObjects = scene.GetRootGameObjects();
+
+        for (int i = 0; i < gameObjects.Length; i++)
+        {
+            if (gameObjects[i].TryGetComponent<GameParameters>(out GameParameters param))
+            {
+                parameters = param;
+                return parameters;
+            }
+        }
+
         return null;
     }
 }

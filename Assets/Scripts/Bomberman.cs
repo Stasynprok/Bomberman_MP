@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 using UnityEngine.Windows;
 
 public class Bomberman : NetworkBehaviour
@@ -26,6 +27,7 @@ public class Bomberman : NetworkBehaviour
     //private FootStepPool _poolFoots;
     [SyncVar(hook = nameof(SetNick))]
     private string Nick;
+    public GameParameters GameParameters;
 
     private void Awake()
     {
@@ -46,11 +48,12 @@ public class Bomberman : NetworkBehaviour
         {
             return;
         }
+        SetGameParameters();
         SetBomberman();
     }
     public void SetBomberman()
     {
-        GameParameters grid = GameParameters.Instance;
+        GameParameters grid = GameParameters;
 
         grid.InitBomberman(gameObject);
     }
@@ -83,7 +86,7 @@ public class Bomberman : NetworkBehaviour
         {
             return;
         }
-        if (!GameParameters.Instance.SafeFromBomb(cord, new Vector2Int(x, z))) {
+        if (!GameParameters.SafeFromBomb(cord, new Vector2Int(x, z))) {
             //Debug.Log("Bomberman Destroyed");
             Destroy(gameObject);
         } else {
@@ -142,8 +145,8 @@ public class Bomberman : NetworkBehaviour
         Vector2Int temp = new(Mathf.RoundToInt(val.x), Mathf.RoundToInt(val.y));
 
         Vector2Int newPos = new(x - temp.y, z + temp.x);
-        if (!isMoving && GameParameters.Instance.CanMove(newPos)) {
-            Vector3 dest = GameParameters.Instance.MatToWorldPos(newPos.x, newPos.y);
+        if (!isMoving && GameParameters.CanMove(newPos)) {
+            Vector3 dest = GameParameters.MatToWorldPos(newPos.x, newPos.y);
             //float y_rotation = 0;
             if (temp.x == -1) {
                 rotationAngles.y = -90;
@@ -213,21 +216,46 @@ public class Bomberman : NetworkBehaviour
         }
     }
 
-/*    private void InstantiateFootSteps(float y) {
-        if (!isLocalPlayer)
+    /*    private void InstantiateFootSteps(float y) {
+            if (!isLocalPlayer)
+            {
+                return;
+            }
+
+            var obj = _poolFoots.GetObjectFromPool();
+            obj.transform.position = new Vector3(transform.position.x, 0.1f, transform.position.z);
+            obj.transform.rotation = Quaternion.Euler(90, y, 0);
+
+            FootStepScript step = obj.GetComponent<FootStepScript>();
+
+            step.Initialize(_poolFoots);
+        }*/
+    [Client]
+    private void SetGameParameters()
+    {
+        Scene scene = gameObject.scene;
+        GameParameters = FindFirstObjectByType<GameParameters>();
+        //GameParameters = GetGameParametersFromScene(scene);
+    }
+
+    /*private GameParameters GetGameParametersFromScene(Scene scene)
+    {
+        GameParameters parameters;
+        GameObject[] gameObjects;
+
+        gameObjects = scene.GetRootGameObjects();
+
+        for (int i = 0; i < gameObjects.Length; i++)
         {
-            return;
+            if (gameObjects[i].TryGetComponent<GameParameters>(out GameParameters param))
+            {
+                parameters = param;
+                return parameters;
+            }
         }
 
-        var obj = _poolFoots.GetObjectFromPool();
-        obj.transform.position = new Vector3(transform.position.x, 0.1f, transform.position.z);
-        obj.transform.rotation = Quaternion.Euler(90, y, 0);
-
-        FootStepScript step = obj.GetComponent<FootStepScript>();
-
-        step.Initialize(_poolFoots);
+        return null;
     }*/
-
     public void SetNickname(string nickname)
     {
         Nick = nickname;

@@ -40,7 +40,7 @@ public class GameParameters : NetworkBehaviour
     [SyncVar]
     public int[] Mat1d;
 
-    #region Singleton
+/*    #region Singleton
     /// <summary>
     /// Instance of our Singleton
     /// </summary>
@@ -68,7 +68,7 @@ public class GameParameters : NetworkBehaviour
     {
         InitializeSingletonGameParameters();
     }
-    #endregion
+    #endregion*/
 
     private void OnDrawGizmosSelected()
     {

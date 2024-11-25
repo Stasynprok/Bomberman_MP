@@ -2,6 +2,7 @@ using Mirror;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Enemy : NetworkBehaviour
 {
@@ -11,59 +12,67 @@ public class Enemy : NetworkBehaviour
     int[,] move;
     private Vector3 rotationAngles;
     System.Random rnd;
+    private GameParameters _gameParameters;
 
-    /*public GameObject footStep;
-    private FootStepPool _poolFoots;*/
-
-    [Server]
-    private void Awake()
+    private void Start()
     {
+        if (!isServer)
+        {
+            return;
+        }
+        SetGameParameters();
         x = z = 1;
         isMoving = false;
         move = new int[,] { { 0, 1 }, { 0, -1 }, { 1, 0 }, { -1, 0 } };
         rnd = new System.Random();
-        //_poolFoots = GetComponent<FootStepPool>();
-    }
 
-    [Server]
-    private void Start()
-    {
-        Vector2Int pos = GameParameters.Instance.GetCoordinate();
+        Vector2Int pos = _gameParameters.GetCoordinate();
         //Debug.Log($"pos is {pos}");
         x = pos.x;
         z = pos.y;
     }
-    [Server]
+
+
     private void OnEnable()
     {
         GameEvents.OnDestroyBomb += SelfDestroyHandler;
     }
-    [Server]
+
     private void OnDisable()
     {
         GameEvents.OnDestroyBomb -= SelfDestroyHandler;
-        GameEvents.OnDestroyEnemyInvoke();
-        SoundManagement.sm.PlayHurt();
+        
     }
-    [Server]
+
     private void SelfDestroyHandler(Vector2Int cord) {
-        if (!GameParameters.Instance.SafeFromBomb(cord, new Vector2Int(x, z))) {
+        if (!_gameParameters.SafeFromBomb(cord, new Vector2Int(x, z))) {
             //Debug.Log("Enemy Destroyed");
             Destroy(gameObject);
         }
     }
-    [Server]
+
+    private void OnDestroy()
+    {
+        GameEvents.OnDestroyEnemyInvoke();
+        SoundManagement.sm.PlayHurt();
+    }
+
     private void FixedUpdate()
     {
+        if (!isServer)
+        {
+            return;
+        }
+
         int i = rnd.Next(0, 4);
         Vector2Int next = new (move[i, 0], move[i, 1]);
         OnMovementPerformed(next);
     }
-    [Server]
+
     private void OnMovementPerformed(Vector2Int temp) {
         Vector2Int newPos = new(x + temp.x, z + temp.y);
-        if (!isMoving && GameParameters.Instance.CanMove(newPos)) {
-            Vector3 dest = GameParameters.Instance.MatToWorldPos(newPos.x, newPos.y);
+        if (!isMoving && _gameParameters.CanMove(newPos)) {
+            Vector3 dest = _gameParameters.MatToWorldPos(newPos.x, newPos.y);
             //float y_rotation = 0;
             if (temp.y == 1) {
                 rotationAngles.y = 90;
@@ -81,7 +90,7 @@ public class Enemy : NetworkBehaviour
             z = newPos.y;
         }
     }
-    [Server]
+
     private IEnumerator Move(Vector3 dest)
     {
         isMoving = true;
@@ -103,7 +112,32 @@ public class Enemy : NetworkBehaviour
         transform.position = end;
         isMoving = false;
     }
-    
+
+    private void SetGameParameters()
+    {
+        Scene scene = gameObject.scene;
+        _gameParameters = GetGameParametersFromScene(scene);
+    }
+
+
+    private GameParameters GetGameParametersFromScene(Scene scene)
+    {
+        GameParameters parameters;
+        GameObject[] gameObjects;
+
+        gameObjects = scene.GetRootGameObjects();
+
+        for (int i = 0; i < gameObjects.Length; i++)
+        {
+            if (gameObjects[i].TryGetComponent<GameParameters>(out GameParameters param))
+            {
+                parameters = param;
+                return parameters;
+            }
+        }
+
+        return null;
+    }
     /*private void InstantiateFootSteps(float y) {
         var obj = _poolFoots.GetObjectFromPool();
         obj.transform.position = new Vector3(transform.position.x, 0.1f, transform.position.z);

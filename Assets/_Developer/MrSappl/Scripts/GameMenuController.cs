@@ -11,6 +11,8 @@ public class GameMenuController : MonoBehaviour
     [SerializeField] private GameObject _menu;
     [SerializeField] private Button _menuButton;
     [SerializeField] private Button _mainMenuButton;
+    private GameParameters _gameParameters;
+
 
     private void OnEnable()
     {
@@ -25,13 +27,13 @@ public class GameMenuController : MonoBehaviour
     }
     public void ToggleMenuHandler()
     {
-        GameParameters.Instance.ToggleMenu = !GameParameters.Instance.ToggleMenu;
+        _gameParameters.ToggleMenu = !_gameParameters.ToggleMenu;
         UpdateMenuWindow();
     }
 
     private void UpdateMenuWindow()
     {
-        _menu.SetActive(GameParameters.Instance.ToggleMenu || GameParameters.Instance.GameOver);
+        _menu.SetActive(_gameParameters.ToggleMenu || _gameParameters.GameOver);
     }
 
     public void MainMenuHandler()

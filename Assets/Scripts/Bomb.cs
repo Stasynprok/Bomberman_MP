@@ -9,6 +9,7 @@ public class Bomb : MonoBehaviour
     public Animator anim;
     private bool triggered;
     private Vector2Int cord;
+    private GameParameters _gameParameters;
 
     private void Awake()
     {
@@ -19,7 +20,7 @@ public class Bomb : MonoBehaviour
 
     private void Start()
     {
-        cord = GameParameters.Instance.PosToMat(transform.position);
+        cord = _gameParameters.PosToMat(transform.position);
     }
 
     private void FixedUpdate()

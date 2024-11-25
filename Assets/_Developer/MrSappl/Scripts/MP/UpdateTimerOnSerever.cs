@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class UpdateTimerOnSerever : NetworkBehaviour
 {
-    private void Update()
+    /*private void Update()
     {
         UpdateTimeCount();
     }
@@ -14,5 +14,5 @@ public class UpdateTimerOnSerever : NetworkBehaviour
     private void UpdateTimeCount()
     {
         GameParameters.Instance.Timer += Time.deltaTime;
-    }
+    }*/
 }
